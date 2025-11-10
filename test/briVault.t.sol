@@ -6,7 +6,6 @@ import {BriVault} from "../src/briVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockERC20} from "./MockErc20.t.sol";
 
-
 contract BriVaultTest is Test {
     uint256 public participationFeeBsp;
     uint256 public eventStartDate;
@@ -27,14 +26,54 @@ contract BriVaultTest is Test {
     address user5 = makeAddr("user5");
 
     string[48] countries = [
-        "United States", "Canada", "Mexico", "Argentina", "Brazil", "Ecuador",
-        "Uruguay", "Colombia", "Peru", "Chile", "Japan", "South Korea",
-        "Australia", "Iran", "Saudi Arabia", "Qatar", "Uzbekistan", "Jordan",
-        "France", "Germany", "Spain", "Portugal", "England", "Netherlands",
-        "Italy", "Croatia", "Belgium", "Switzerland", "Denmark", "Poland",
-        "Serbia", "Sweden", "Austria", "Morocco", "Senegal", "Nigeria",
-        "Cameroon", "Egypt", "South Africa", "Ghana", "Algeria", "Tunisia",
-        "Ivory Coast", "New Zealand", "Costa Rica", "Panama", "United Arab Emirates", "Iraq"
+        "United States",
+        "Canada",
+        "Mexico",
+        "Argentina",
+        "Brazil",
+        "Ecuador",
+        "Uruguay",
+        "Colombia",
+        "Peru",
+        "Chile",
+        "Japan",
+        "South Korea",
+        "Australia",
+        "Iran",
+        "Saudi Arabia",
+        "Qatar",
+        "Uzbekistan",
+        "Jordan",
+        "France",
+        "Germany",
+        "Spain",
+        "Portugal",
+        "England",
+        "Netherlands",
+        "Italy",
+        "Croatia",
+        "Belgium",
+        "Switzerland",
+        "Denmark",
+        "Poland",
+        "Serbia",
+        "Sweden",
+        "Austria",
+        "Morocco",
+        "Senegal",
+        "Nigeria",
+        "Cameroon",
+        "Egypt",
+        "South Africa",
+        "Ghana",
+        "Algeria",
+        "Tunisia",
+        "Ivory Coast",
+        "New Zealand",
+        "Costa Rica",
+        "Panama",
+        "United Arab Emirates",
+        "Iraq"
     ];
 
     function setUp() public {
@@ -65,7 +104,7 @@ contract BriVaultTest is Test {
 
         briVault.approve(address(mockToken), type(uint256).max);
 
-          vm.stopPrank();
+        vm.stopPrank();
     }
 
     function testSetCountryOnlyOwner() public {
@@ -76,7 +115,7 @@ contract BriVaultTest is Test {
     }
 
     function testOwnerIsSetCorrectly() public view {
-    assertEq(briVault.owner(), owner, "Owner should be deployer");
+        assertEq(briVault.owner(), owner, "Owner should be deployer");
     }
 
     function testNotOwnerCannotSetCountry() public {
@@ -156,28 +195,27 @@ contract BriVaultTest is Test {
 
         vm.startPrank(user3);
         mockToken.approve(address(briVault), 5 ether);
-         uint256 user3shares = briVault.deposit(5 ether, user3);
-      
+        uint256 user3shares = briVault.deposit(5 ether, user3);
+
         briVault.joinEvent(30);
         console.log("user3 shares", user3shares);
         vm.stopPrank();
 
         vm.startPrank(user4);
         mockToken.approve(address(briVault), 5 ether);
-         uint256 user4shares =  briVault.deposit(5 ether, user4);
-    
+        uint256 user4shares = briVault.deposit(5 ether, user4);
+
         briVault.joinEvent(40);
         console.log("user4 shares", user4shares);
         vm.stopPrank();
-        
+
         assertEq(briVault.balanceOf(user1), user1shares);
         assertEq(briVault.balanceOf(user2), user2shares);
         assertEq(briVault.balanceOf(user3), user3shares);
         assertEq(briVault.balanceOf(user4), user4shares);
     }
 
-    function test_cancelParticipation () public {
-
+    function test_cancelParticipation() public {
         vm.startPrank(user1);
         mockToken.approve(address(briVault), 5 ether);
         briVault.deposit(5 ether, user1);
@@ -206,7 +244,7 @@ contract BriVaultTest is Test {
 
         vm.startPrank(user1);
         mockToken.approve(address(briVault), 5 ether);
-        uint256 user1Shares =  briVault.deposit(5 ether, user1);
+        uint256 user1Shares = briVault.deposit(5 ether, user1);
         briVault.joinEvent(10);
         uint256 balanceBeforuser1 = mockToken.balanceOf(user1);
         vm.stopPrank();
@@ -231,10 +269,10 @@ contract BriVaultTest is Test {
         uint256 balanceBeforuser4 = mockToken.balanceOf(user4);
         vm.stopPrank();
 
-        console.log( user3Shares);
-        console.log( user2Shares);
-        console.log( user1Shares);
-        console.log( user4Shares);
+        console.log(user3Shares);
+        console.log(user2Shares);
+        console.log(user1Shares);
+        console.log(user4Shares);
 
         vm.warp(eventEndDate + 1);
         vm.startPrank(owner);
@@ -259,10 +297,8 @@ contract BriVaultTest is Test {
         briVault.withdraw();
         vm.stopPrank();
 
-     assertEq(mockToken.balanceOf(user1), balanceBeforuser1 + 6566666666666666666);
-     assertEq(mockToken.balanceOf(user2), balanceBeforuser2 + 6566666666666666666);
-     assertEq(mockToken.balanceOf(user4), balanceBeforuser4 + 6566666666666666666);
-       
+        assertEq(mockToken.balanceOf(user1), balanceBeforuser1 + 6566666666666666666);
+        assertEq(mockToken.balanceOf(user2), balanceBeforuser2 + 6566666666666666666);
+        assertEq(mockToken.balanceOf(user4), balanceBeforuser4 + 6566666666666666666);
     }
-    
 }

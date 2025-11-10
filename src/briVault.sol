@@ -9,17 +9,15 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-
 contract BriVault is ERC4626, Ownable {
-
     using SafeERC20 for IERC20;
-    
+
     uint256 public participationFeeBsp;
 
-    uint256 constant BASE = 10000;
-    uint256 constant PARTICIPATIONFEEBSPMAX = 300; 
+    uint256 constant BASE = 10000; // 10_000
+    uint256 constant PARTICIPATIONFEEBSPMAX = 300;
     /**
-    @dev participationFee address
+     * @dev participationFee address
      */
     address private participationFeeAddress;
 
@@ -27,7 +25,7 @@ contract BriVault is ERC4626, Ownable {
 
     uint256 public eventEndDate;
 
-    uint256 public  stakedAmount;
+    uint256 public stakedAmount;
 
     uint256 public totalAssetsShares;
 
@@ -43,15 +41,14 @@ contract BriVault is ERC4626, Ownable {
 
     uint256 public winnerCountryId;
 
-
     // minimum amount to join in.
-    uint256 public  minimumAmount; 
+    uint256 public minimumAmount;
 
-    // number of participants 
+    // number of participants
     uint256 public numberOfParticipants;
 
-    // Array of teams 
-    string[48] public teams;
+    // Array of teams
+    string[48] public teams; // no of teams are fixed
     address[] public usersAddress;
 
     // Error Logs
@@ -67,53 +64,65 @@ contract BriVault is ERC4626, Ownable {
     error WinnerAlreadySet();
     error limiteExceede();
 
-    event deposited (address indexed _depositor, uint256 _value);
+    event deposited(address indexed _depositor, uint256 _value); //@audit- low wrong description for this event
     event CountriesSet(string[48] country);
-    event WinnerSet (string winnerSet);
-    event joinedEvent (address user, uint256 _countryId);
-    event Withdraw (address user, uint256 _amount);  
+    event WinnerSet(string winnerSet);
+    event joinedEvent(address user, uint256 _countryId);
+    event Withdraw(address user, uint256 _amount);
 
-    mapping (address => uint256) public stakedAsset;
-    mapping (address => string) public userToCountry;
+    mapping(address => uint256) public stakedAsset;
+    mapping(address => string) public userToCountry;
     mapping(address => mapping(uint256 => uint256)) public userSharesToCountry;
-    
 
-    constructor (IERC20 _asset, uint256 _participationFeeBsp, uint256 _eventStartDate, address _participationFeeAddress, uint256 _minimumAmount, uint256 _eventEndDate) ERC4626 (_asset) ERC20("BriTechLabs", "BTT") Ownable(msg.sender) {
-         if (_participationFeeBsp > PARTICIPATIONFEEBSPMAX){
+    constructor(
+        IERC20 _asset,
+        uint256 _participationFeeBsp,
+        uint256 _eventStartDate,
+        address _participationFeeAddress,
+        uint256 _minimumAmount,
+        uint256 _eventEndDate
+    ) ERC4626(_asset) ERC20("BriTechLabs", "BTT") Ownable(msg.sender) {
+        if (_participationFeeBsp > PARTICIPATIONFEEBSPMAX) {
             revert limiteExceede();
-         }
-         
-         participationFeeBsp = _participationFeeBsp;
-         eventStartDate = _eventStartDate;
-         eventEndDate = _eventEndDate;
-         participationFeeAddress = _participationFeeAddress;
-         minimumAmount = _minimumAmount;
-         _setWinner = false;
+        }
+
+        participationFeeBsp = _participationFeeBsp;
+        eventStartDate = _eventStartDate;
+        eventEndDate = _eventEndDate;
+        participationFeeAddress = _participationFeeAddress;
+        minimumAmount = _minimumAmount;
+        _setWinner = false;
     }
 
-    modifier winnerSet () {
+    modifier winnerSet() {
         if (_setWinner != true) {
-          revert winnerNotSet();
+            revert winnerNotSet();
         }
         _;
     }
 
-    /**----------------------------- Admin Functions ----------------------------------- */
+    /**
+     * ----------------------------- Admin Functions -----------------------------------
+     */
 
     /**
-        @notice sets the countries for the tournament
+     * @notice sets the countries for the tournament
      */
- function setCountry(string[48] memory countries) public onlyOwner {
-    for (uint256 i = 0; i < countries.length; ++i) {
-        teams[i] = countries[i];
+    //@audit- low function is not used anywhere in the contract ,hence should be made `external`
+    //@audit- gas calldata should be used
+    function setCountry(string[48] memory countries) public onlyOwner {
+        for (uint256 i = 0; i < countries.length; ++i) {
+            teams[i] = countries[i];
+        }
+        emit CountriesSet(countries);
     }
-    emit CountriesSet(countries);
-}
 
     /**
-        @notice sets the winner at the end of the tournament 
+     * @notice sets the winner at the end of the tournament
      */
-    function setWinner(uint256 countryIndex) public onlyOwner returns (string memory) {
+    function setWinner(
+        uint256 countryIndex
+    ) public onlyOwner returns (string memory) {
         if (block.timestamp <= eventEndDate) {
             revert eventNotEnded();
         }
@@ -133,16 +142,15 @@ contract BriVault is ERC4626, Ownable {
 
         _setFinallizedVaultBalance();
 
-        emit WinnerSet (winner);
-        
-        return winner;
+        emit WinnerSet(winner);
 
+        return winner;
     }
 
     /**
      * @notice sets the finalized vault balance
      */
-    function _setFinallizedVaultBalance () internal returns (uint256) {
+    function _setFinallizedVaultBalance() internal returns (uint256) {
         if (block.timestamp <= eventStartDate) {
             revert eventNotStarted();
         }
@@ -151,9 +159,12 @@ contract BriVault is ERC4626, Ownable {
     }
 
     /**
-        @notice calculates the shares
+     * @notice calculates the shares
      */
-    function _convertToShares(uint256 assets) internal view returns (uint256 shares) {
+    // @follow-up after more research
+    function _convertToShares(
+        uint256 assets
+    ) internal view returns (uint256 shares) {
         uint256 balanceOfVault = IERC20(asset()).balanceOf(address(this));
         uint256 totalShares = totalSupply(); // total minted BTT shares so far
 
@@ -165,20 +176,20 @@ contract BriVault is ERC4626, Ownable {
         shares = Math.mulDiv(assets, totalShares, balanceOfVault);
     }
 
-
     /**
-    @notice get the winner
+     * @notice get the winner
      */
-    function getWinner () public view returns (string memory) {
+    function getWinner() public view returns (string memory) {
         return winner;
     }
 
-
     /**
-        @notice get country 
+     * @notice get country
      */
-    function getCountry(uint256 countryId) external view returns (string memory) {
-         if (bytes(teams[countryId]).length == 0) {
+    function getCountry(
+        uint256 countryId
+    ) external view returns (string memory) {
+        if (bytes(teams[countryId]).length == 0) {
             revert invalidCountry();
         }
 
@@ -186,32 +197,36 @@ contract BriVault is ERC4626, Ownable {
     }
 
     /**
-        @notice get winnerShares
+     * @notice get winnerShares
      */
-    function _getWinnerShares () internal returns (uint256) {
-
-        for (uint256 i = 0; i < usersAddress.length; ++i){
-            address user = usersAddress[i]; 
-           totalWinnerShares += userSharesToCountry[user][winnerCountryId];
+    function _getWinnerShares() internal returns (uint256) {
+        for (uint256 i = 0; i < usersAddress.length; ++i) {
+            address user = usersAddress[i];
+            totalWinnerShares += userSharesToCountry[user][winnerCountryId];
         }
         return totalWinnerShares;
     }
 
-    function _getParticipationFee(uint256 assets) internal view returns (uint256) {
+    function _getParticipationFee(
+        uint256 assets
+    ) internal view returns (uint256) {
         return (assets * participationFeeBsp) / BASE;
     }
 
-    /** 
-        @dev allows users to deposit for the event.
+    /**
+     * @dev allows users to deposit for the event.
      */
-    function deposit(uint256 assets, address receiver) public override returns (uint256) {
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) public override returns (uint256) {
         require(receiver != address(0));
 
         if (block.timestamp >= eventStartDate) {
             revert eventStarted();
         }
 
-        uint256 fee = _getParticipationFee(assets);
+        uint256 fee = _getParticipationFee(assets); //assuming it's working fine
         // charge on a percentage basis points
         if (minimumAmount + fee > assets) {
             revert lowFeeAndAmount();
@@ -221,24 +236,27 @@ contract BriVault is ERC4626, Ownable {
 
         stakedAsset[receiver] = stakeAsset;
 
-        uint256 participantShares = _convertToShares(stakeAsset);
+        uint256 participantShares = _convertToShares(stakeAsset); // assuming it is also working fine
 
-
-        IERC20(asset()).safeTransferFrom(msg.sender, participationFeeAddress, fee);
+        IERC20(asset()).safeTransferFrom(
+            msg.sender,
+            participationFeeAddress,
+            fee
+        );
 
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), stakeAsset);
 
         _mint(msg.sender, participantShares);
 
-
-        emit deposited (receiver, stakeAsset);
+        emit deposited(receiver, stakeAsset);
 
         return participantShares;
     }
 
     /**
-        @dev allows users to join the event 
-    */
+     * @dev allows users to join the event
+     */
+    //@audit -gas this should be external
     function joinEvent(uint256 countryId) public {
         if (stakedAsset[msg.sender] == 0) {
             revert noDeposit();
@@ -253,10 +271,8 @@ contract BriVault is ERC4626, Ownable {
             revert eventStarted();
         }
 
-        
         userToCountry[msg.sender] = teams[countryId];
 
-        
         uint256 participantShares = balanceOf(msg.sender);
         userSharesToCountry[msg.sender][countryId] = participantShares;
 
@@ -268,29 +284,29 @@ contract BriVault is ERC4626, Ownable {
         emit joinedEvent(msg.sender, countryId);
     }
 
-
     /**
-        @dev cancel participation
+     * @dev cancel participation
      */
-    function cancelParticipation () public  {
-        if (block.timestamp >= eventStartDate){
-           revert eventStarted();
+    //@audit gas- this should be external
+    function cancelParticipation() public {
+        if (block.timestamp >= eventStartDate) {
+            revert eventStarted();
         }
 
         uint256 refundAmount = stakedAsset[msg.sender];
 
         stakedAsset[msg.sender] = 0;
 
-         uint256 shares = balanceOf(msg.sender);
-        
+        uint256 shares = balanceOf(msg.sender);
+
         _burn(msg.sender, shares);
 
         IERC20(asset()).safeTransfer(msg.sender, refundAmount);
     }
 
-        /**
-            @dev allows users to withdraw. 
-        */
+    /**
+     * @dev allows users to withdraw.
+     */
     function withdraw() external winnerSet {
         if (block.timestamp < eventEndDate) {
             revert eventNotEnded();
@@ -305,14 +321,16 @@ contract BriVault is ERC4626, Ownable {
         uint256 shares = balanceOf(msg.sender);
 
         uint256 vaultAsset = finalizedVaultAsset;
-        uint256 assetToWithdraw = Math.mulDiv(shares, vaultAsset, totalWinnerShares);
-        
+        uint256 assetToWithdraw = Math.mulDiv(
+            shares,
+            vaultAsset,
+            totalWinnerShares
+        );
+
         _burn(msg.sender, shares);
 
         IERC20(asset()).safeTransfer(msg.sender, assetToWithdraw);
 
         emit Withdraw(msg.sender, assetToWithdraw);
     }
-
-
 }
